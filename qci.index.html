@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QCI PB - Steam Boiler Monitoring</title>
+<style>
+  :root {
+    --surface-0: #f4f3f0;
+    --surface-1: #f1efe9;
+    --surface-2: #ffffff;
+    --text-primary: #1a1a18;
+    --text-secondary: #5f5e5a;
+    --text-muted: #888780;
+    --border: #e3e1da;
+    --success-bg: #eaf3de;
+    --success-text: #3b6d11;
+    --warning-bg: #faeeda;
+    --warning-text: #854f0b;
+    --danger-bg: #fcebeb;
+    --danger-text: #a32d2d;
+    --radius: 8px;
+    --radius-lg: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sarabun", "Noto Sans Thai", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface-0); color: var(--text-primary); padding: 1rem; -webkit-font-smoothing: antialiased; }
+  .app { max-width: 480px; margin: 0 auto; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .brand-mark { width: 26px; height: 26px; border-radius: 7px; background: #1a1a18; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .brand-name { font-size: 14px; font-weight: 600; }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); display: inline-block; margin-right: 5px; }
+  .conn-dot.online { background: #3b6d11; }
+  .conn-dot.stale { background: #854f0b; }
+  .conn-dot.offline { background: #a32d2d; }
+  .conn-status { display: flex; align-items: center; font-size: 11px; color: var(--text-secondary); }
+  .card { background: var(--surface-1); border-radius: var(--radius-lg); padding: 1.1rem; margin-bottom: 14px; }
+  .card-white { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.1rem; margin-bottom: 14px; }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+  .hero-label { font-size: 12px; color: var(--text-secondary); }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius); }
+  .badge-ok { background: var(--success-bg); color: var(--success-text); }
+  .badge-warn { background: var(--warning-bg); color: var(--warning-text); }
+  .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
+  .hero-sub { font-size: 12px; color: var(--text-muted); margin: 0 0 6px; }
+  .hero-value-row { display: flex; align-items: flex-end; justify-content: space-between; }
+  .hero-value { font-size: 30px; font-weight: 600; margin: 0; }
+  .hero-unit { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
+  .section-title { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
+  .grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .metric-card { background: var(--surface-1); border-radius: 12px; padding: 10px 12px; }
+  .metric-label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+  .metric-value { font-size: 18px; font-weight: 600; margin: 0; }
+  .actions-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+  .action-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; padding: 0; }
+  .action-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--surface-1); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text-primary); }
+  .action-label { font-size: 10px; color: var(--text-secondary); }
+  .event-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 0.5px solid var(--border); }
+  .event-row:last-child { border-bottom: 0.5px solid var(--border); }
+  .event-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .event-icon.warn { background: var(--warning-bg); color: var(--warning-text); }
+  .event-icon.info { background: var(--surface-1); color: var(--text-secondary); }
+  .event-title { font-size: 12px; margin: 0; }
+  .event-time { font-size: 10px; color: var(--text-muted); margin: 0; }
+  .footer { display: flex; align-items: center; justify-content: center; padding-top: 12px; margin-top: 4px; border-top: 0.5px solid var(--border); font-size: 11px; color: var(--text-muted); }
+  .error-banner { background: var(--danger-bg); color: var(--danger-text); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; }
+  .empty-note { font-size: 11px; color: var(--text-muted); padding: 4px 0; }
+  .icon { width: 16px; height: 16px; display: inline-block; vertical-align: -3px; }
+  .icon-sm { width: 13px; height: 13px; vertical-align: -2px; }
+  @media (min-width: 700px) {
+    .app { max-width: 720px; }
+    .grid-2x2 { grid-template-columns: repeat(4, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <div class="header">
+    <div class="brand">
+      <div class="brand-mark"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4-2 5-2 8a2 2 0 0 0 4 0c1 2 1 4-1 6a5 5 0 0 1-6-6c0-3 2-4 3-8"/></svg></div>
+      <span class="brand-name">QCI PB</span>
+    </div>
+    <div class="conn-status">
+      <span class="conn-dot" id="connDot"></span>
+      <span id="connText">กำลังโหลด...</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hero-top">
+      <span class="hero-label">แรงดันไอน้ำ</span>
+      <span class="badge badge-ok" id="pressureBadge">-</span>
+    </div>
+    <p class="hero-sub" id="lastUpdate">อัปเดตล่าสุด: -</p>
+    <div class="hero-value-row">
+      <p class="hero-value"><span id="pressureValue">-</span> <span class="hero-unit">bar</span></p>
+      <svg id="sparkline" width="90" height="34" viewBox="0 0 90 34"></svg>
+    </div>
+  </div>
+
+  <p class="section-title">อุณหภูมิ</p>
+  <div class="grid-2x2">
+    <div class="metric-card">
+      <div class="metric-label"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg> น้ำเข้า ECO</div>
+      <p class="metric-value"><span id="waterInValue">-</span> °C</p>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg> น้ำออก ECO</div>
+      <p class="metric-value"><span id="waterOutValue">-</span> °C</p>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4-2 5-2 8a2 2 0 0 0 4 0c1 2 1 4-1 6a5 5 0 0 1-6-6c0-3 2-4 3-8"/></svg> ไอเสียเข้า ECO</div>
+      <p class="metric-value"><span id="exhaustInValue">-</span> °C</p>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="18" rx="1"/><path d="M6 21h12"/></svg> ปล่องควัน</div>
+      <p class="metric-value"><span id="stackValue">-</span> °C</p>
+    </div>
+  </div>
+
+  <div class="actions-row">
+    <button class="action-btn" onclick="alert('เชื่อมต่อประวัติย้อนหลังยังไม่เปิดใช้งาน')">
+      <div class="action-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 19v-6M12 19V9M16 19v-9"/></svg></div>
+      <span class="action-label">ย้อนหลัง</span>
+    </button>
+    <button class="action-btn" onclick="alert('เชื่อมต่อระบบแจ้งเตือนยังไม่เปิดใช้งาน')">
+      <div class="action-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg></div>
+      <span class="action-label">แจ้งเตือน</span>
+    </button>
+    <button class="action-btn" onclick="alert('เชื่อมต่อข้อมูลไฟฟ้ายังไม่เปิดใช้งาน')">
+      <div class="action-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg></div>
+      <span class="action-label">ไฟฟ้า</span>
+    </button>
+    <button class="action-btn" onclick="location.href='tel:'">
+      <div class="action-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></div>
+      <span class="action-label">ติดต่อ</span>
+    </button>
+  </div>
+
+  <div class="card-white">
+    <p class="section-title">แนวโน้มแรงดัน (ตั้งแต่เปิดหน้านี้)</p>
+    <svg id="trendChart" width="100%" height="90" viewBox="0 0 400 90"></svg>
+  </div>
+
+  <div class="card-white">
+    <p class="section-title">เหตุการณ์ล่าสุด</p>
+    <p class="empty-note" id="eventsEmpty">ยังไม่มีระบบบันทึกเหตุการณ์ — ส่วนนี้จะเปิดใช้งานเมื่อเชื่อมต่อ Alarm log</p>
+  </div>
+
+  <div class="footer">Powered by Thanaphon Engineering Co., Ltd.</div>
+</div>
+
+<script>
+// ====== ตั้งค่าตรงนี้สำหรับแต่ละโปรเจ็คลูกค้า ======
+const CONFIG = {
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyr0-kC18qQQjgiTvUvMVOVrPQdUjAc_7FXrI6yZgxtNvQTIQGY4pa_mFaPICDyzqQL/exec",
+  POLL_INTERVAL_MS: 30000,
+  STALE_AFTER_MS: 120000,
+  PRESSURE_WARN_ABOVE: 6.0,
+  PRESSURE_DANGER_ABOVE: 7.0
+};
+
+let history = [];
+
+function fmtNum(v, decimals) {
+  const n = Number(v);
+  if (isNaN(n)) return "-";
+  return n.toFixed(decimals === undefined ? 1 : decimals);
+}
+
+function updateConnStatus(state, text) {
+  document.getElementById("connDot").className = "conn-dot " + state;
+  document.getElementById("connText").textContent = text;
+}
+
+function updatePressureBadge(pressure) {
+  const badge = document.getElementById("pressureBadge");
+  const p = Number(pressure);
+  if (isNaN(p)) { badge.textContent = "-"; badge.className = "badge"; return; }
+  if (p >= CONFIG.PRESSURE_DANGER_ABOVE) {
+    badge.textContent = "สูงเกินไป"; badge.className = "badge badge-danger";
+  } else if (p >= CONFIG.PRESSURE_WARN_ABOVE) {
+    badge.textContent = "ใกล้ค่าสูงสุด"; badge.className = "badge badge-warn";
+  } else {
+    badge.textContent = "ปกติ"; badge.className = "badge badge-ok";
+  }
+}
+
+function polylinePoints(values, w, h, pad) {
+  if (values.length < 2) return "";
+  const min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+  const range = (max - min) || 1;
+  const step = (w - pad * 2) / (values.length - 1);
+  return values.map(function(v, i) {
+    const x = pad + i * step;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
+}
+
+function drawSparkline() {
+  const svg = document.getElementById("sparkline");
+  const values = history.map(function(h) { return h.pressure; });
+  const pts = polylinePoints(values, 90, 34, 4);
+  svg.innerHTML = pts ? '<polyline points="' + pts + '" fill="none" stroke="#1D9E75" stroke-width="2"/>' : "";
+}
+
+function drawTrend() {
+  const svg = document.getElementById("trendChart");
+  const values = history.map(function(h) { return h.pressure; });
+  if (values.length < 2) {
+    svg.innerHTML = '<text x="200" y="45" text-anchor="middle" font-size="11" fill="#888780">รอสะสมข้อมูล...</text>';
+    return;
+  }
+  const pts = polylinePoints(values, 400, 90, 10);
+  svg.innerHTML =
+    '<line x1="0" y1="20" x2="400" y2="20" stroke="#e3e1da" stroke-width="0.5"/>' +
+    '<line x1="0" y1="55" x2="400" y2="55" stroke="#e3e1da" stroke-width="0.5"/>' +
+    '<polyline points="' + pts + '" fill="none" stroke="#378ADD" stroke-width="2"/>';
+}
+
+async function fetchData() {
+  try {
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const json = await res.json();
+    if (json.status !== "ok" || !json.data) throw new Error("ยังไม่มีข้อมูลจากอุปกรณ์");
+
+    const d = json.data;
+    document.getElementById("errorBanner").style.display = "none";
+
+    document.getElementById("pressureValue").textContent = fmtNum(d.streamPressure, 1);
+    document.getElementById("waterInValue").textContent = fmtNum(d.TempWaterInletEco, 0);
+    document.getElementById("waterOutValue").textContent = fmtNum(d.TempWaterOutletEco, 0);
+    document.getElementById("exhaustInValue").textContent = fmtNum(d.TempExhaustInletEco, 0);
+    document.getElementById("stackValue").textContent = fmtNum(d.TempExhaustToStack, 0);
+
+    updatePressureBadge(d.streamPressure);
+
+    const ts = d.timestamp ? new Date(String(d.timestamp).replace(" ", "T")) : new Date();
+    document.getElementById("lastUpdate").textContent = "อัปเดตล่าสุด: " + ts.toLocaleTimeString("th-TH");
+
+    const ageMs = Date.now() - ts.getTime();
+    updateConnStatus(
+      ageMs < CONFIG.STALE_AFTER_MS ? "online" : "stale",
+      ageMs < CONFIG.STALE_AFTER_MS ? "ออนไลน์" : "ข้อมูลค้าง"
+    );
+
+    history.push({ t: Date.now(), pressure: Number(d.streamPressure) || 0 });
+    if (history.length > 40) history.shift();
+    drawSparkline();
+    drawTrend();
+
+  } catch (err) {
+    updateConnStatus("offline", "ขาดการเชื่อมต่อ");
+    const banner = document.getElementById("errorBanner");
+    banner.textContent = "ดึงข้อมูลไม่สำเร็จ: " + err.message;
+    banner.style.display = "block";
+    console.error(err);
+  }
+}
+
+fetchData();
+setInterval(fetchData, CONFIG.POLL_INTERVAL_MS);
+</script>
+</body>
+</html>
