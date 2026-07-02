@@ -89,11 +89,15 @@
   <div class="card-white">
     <p class="section-title">แนวโน้มแรงดันไอน้ำ</p>
     <div class="range-btns">
-      <button class="range-btn active" data-limit="50">ล่าสุด 50 จุด</button>
-      <button class="range-btn" data-limit="200">ล่าสุด 200 จุด</button>
-      <button class="range-btn" data-limit="1000">ล่าสุด 1000 จุด</button>
+      <button class="range-btn active" data-mode="raw" data-limit="2880">24 ชม.</button>
+      <button class="range-btn" data-mode="agg" data-limit="168">7 วัน</button>
+      <button class="range-btn" data-mode="agg" data-limit="720">30 วัน</button>
     </div>
     <svg id="pressureChart" width="100%" height="160" viewBox="0 0 700 160"></svg>
+    <div class="legend" id="pressureLegend" style="display:none;">
+      <span class="legend-item"><span class="legend-dot" style="background:#c9a227"></span>ค่าเฉลี่ย</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#c9a227;opacity:0.3"></span>ช่วงต่ำสุด–สูงสุด</span>
+    </div>
   </div>
 
   <div class="card-white">
@@ -126,8 +130,6 @@ const CONFIG = {
   APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwIg7zn9siwqZQ1-j-50YUtYZh0ZsWLBO4s318H2UH3hI0qnuNfMpY1fmYsSpnsvea1/exec"
 };
 
-let currentLimit = 50;
-
 function polyline(values, w, h, padL, padR, padT, padB) {
   if (values.length < 2) return "";
   const min = Math.min.apply(null, values), max = Math.max.apply(null, values);
@@ -147,15 +149,41 @@ function renderPressureChart(records) {
     svg.innerHTML = '<text x="350" y="80" text-anchor="middle" font-size="12" fill="#918f86">ยังไม่มีข้อมูลย้อนหลังเพียงพอ</text>';
     return;
   }
-  const pts = polyline(values, 700, 160, 10, 10, 15, 20);
-  const min = Math.min.apply(null, values).toFixed(1);
-  const max = Math.max.apply(null, values).toFixed(1);
+
+  const hasMinMax = records[0].streamPressure_min !== undefined && records[0].streamPressure_min !== "";
+  const minValues = hasMinMax ? records.map(function(r) { return Number(r.streamPressure_min) || 0; }) : null;
+  const maxValues = hasMinMax ? records.map(function(r) { return Number(r.streamPressure_max) || 0; }) : null;
+
+  const allForScale = hasMinMax ? values.concat(minValues, maxValues) : values;
+  const w = 700, h = 160, padL = 10, padR = 10, padT = 15, padB = 20;
+  const min = Math.min.apply(null, allForScale), max = Math.max.apply(null, allForScale);
+  const range = (max - min) || 1;
+  const step = (w - padL - padR) / (values.length - 1);
+
+  function toY(v) { return h - padB - ((v - min) / range) * (h - padT - padB); }
+  function toX(i) { return padL + i * step; }
+
+  let bandPath = "";
+  if (hasMinMax) {
+    const topPts = maxValues.map(function(v, i) { return toX(i).toFixed(1) + "," + toY(v).toFixed(1); });
+    const bottomPts = minValues.map(function(v, i) { return toX(i).toFixed(1) + "," + toY(v).toFixed(1); }).reverse();
+    bandPath = '<polygon points="' + topPts.concat(bottomPts).join(" ") + '" fill="#c9a227" opacity="0.15"/>';
+  }
+
+  const avgPts = values.map(function(v, i) { return toX(i).toFixed(1) + "," + toY(v).toFixed(1); }).join(" ");
+
   svg.innerHTML =
-    '<line x1="0" y1="15" x2="700" y2="15" stroke="#e5e1d6" stroke-width="0.5"/>' +
-    '<line x1="0" y1="140" x2="700" y2="140" stroke="#e5e1d6" stroke-width="0.5"/>' +
-    '<text x="0" y="12" font-size="10" fill="#918f86" font-family="monospace">' + max + ' bar</text>' +
-    '<text x="0" y="155" font-size="10" fill="#918f86" font-family="monospace">' + min + ' bar</text>' +
-    '<polyline points="' + pts + '" fill="none" stroke="#c9a227" stroke-width="2"/>';
+    '<line x1="0" y1="' + padT + '" x2="700" y2="' + padT + '" stroke="#e5e1d6" stroke-width="0.5"/>' +
+    '<line x1="0" y1="' + (h - padB) + '" x2="700" y2="' + (h - padB) + '" stroke="#e5e1d6" stroke-width="0.5"/>' +
+    '<text x="0" y="12" font-size="10" fill="#918f86" font-family="monospace">' + max.toFixed(1) + ' bar</text>' +
+    '<text x="0" y="155" font-size="10" fill="#918f86" font-family="monospace">' + min.toFixed(1) + ' bar</text>' +
+    bandPath +
+    '<polyline points="' + avgPts + '" fill="none" stroke="#c9a227" stroke-width="2"/>';
+
+  if (hasMinMax) {
+    const legend = document.getElementById("pressureLegend");
+    if (legend) legend.style.display = "flex";
+  }
 }
 
 function renderTempChart(records) {
@@ -214,10 +242,10 @@ function renderTable(records) {
   wrap.innerHTML = html;
 }
 
-async function loadHistory(limit) {
-  currentLimit = limit;
+async function loadHistory(mode, limit) {
   try {
-    const url = CONFIG.APPS_SCRIPT_URL + "?action=history&limit=" + limit;
+    const action = mode === "agg" ? "history_agg" : "history";
+    const url = CONFIG.APPS_SCRIPT_URL + "?action=" + action + "&limit=" + limit;
     const res = await fetch(url, { cache: "no-store" });
     const json = await res.json();
     const records = (json.status === "ok" && json.data) ? json.data : [];
@@ -233,11 +261,11 @@ document.querySelectorAll(".range-btn").forEach(function(btn) {
   btn.addEventListener("click", function() {
     document.querySelectorAll(".range-btn").forEach(function(b) { b.classList.remove("active"); });
     btn.classList.add("active");
-    loadHistory(parseInt(btn.dataset.limit, 10));
+    loadHistory(btn.dataset.mode, parseInt(btn.dataset.limit, 10));
   });
 });
 
-loadHistory(currentLimit);
+loadHistory("raw", 2880);
 </script>
 </body>
 </html>
