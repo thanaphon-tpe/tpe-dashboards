@@ -6,7 +6,7 @@
 <title>QCI PB - Steam Boiler Monitoring</title>
 <style>
   :root {
-    --navy: #10233d;
+    --navy: #0e1f38;
     --navy-2: #16304f;
     --gold: #c9a227;
     --gold-soft: #e8d48a;
@@ -25,7 +25,7 @@
     --danger-text: #a32d2d;
     --radius: 8px;
     --radius-lg: 18px;
-    --mono: "SF Mono", "Cascadia Mono", Consolas, monospace;
+    font-variant-numeric: tabular-nums;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sarabun", "Noto Sans Thai", sans-serif;
   }
   * { box-sizing: border-box; }
@@ -41,37 +41,34 @@
   .brand-mark {
     width: 30px; height: 30px; border-radius: 8px;
     background: var(--gold); color: var(--navy);
-    display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .brand-text p { margin: 0; }
-  .brand-name { font-size: 13px; font-weight: 600; color: #fff; letter-spacing: 0.5px; }
-  .brand-sub { font-size: 10px; color: var(--gold-soft); letter-spacing: 0.8px; text-transform: uppercase; }
+  .brand-name { font-size: 13px; font-weight: 600; color: #fff; letter-spacing: 0.4px; }
+  .brand-sub { font-size: 9.5px; color: var(--gold-soft); letter-spacing: 1px; text-transform: uppercase; }
   .conn-status { display: flex; align-items: center; font-size: 11px; color: #cfd6de; }
   .conn-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); display: inline-block; margin-right: 6px; }
-  .conn-dot.online { background: #6bbf59; box-shadow: 0 0 0 3px rgba(107,191,89,0.2); }
-  .conn-dot.stale { background: var(--gold); box-shadow: 0 0 0 3px rgba(201,162,39,0.2); }
-  .conn-dot.offline { background: #d16a6a; box-shadow: 0 0 0 3px rgba(209,106,106,0.2); }
+  .conn-dot.online { background: #6bbf59; }
+  .conn-dot.stale { background: var(--gold); }
+  .conn-dot.offline { background: #d16a6a; }
 
-  .gauge-card {
+  .hero-card {
     background: var(--navy); border-radius: var(--radius-lg);
-    padding: 18px 20px 14px; margin-bottom: 14px; position: relative;
-    background-image: linear-gradient(180deg, var(--navy-2), var(--navy));
+    padding: 20px 20px 18px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 18px;
   }
-  .gauge-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  .gauge-label { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--gold-soft); }
-  .gauge-id { font-size: 10px; color: rgba(255,255,255,0.4); font-family: var(--mono); }
-  .badge { font-size: 10px; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.3px; }
+  .ring-wrap { position: relative; width: 118px; height: 118px; flex-shrink: 0; }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-value { font-size: 26px; font-weight: 700; color: #fff; line-height: 1; }
+  .ring-unit { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; letter-spacing: 0.5px; }
+
+  .hero-info { flex: 1; min-width: 0; }
+  .hero-label { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--gold-soft); margin: 0 0 6px; }
+  .badge { font-size: 10px; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.3px; display: inline-block; }
   .badge-ok { background: rgba(107,191,89,0.15); color: #a8e298; }
   .badge-warn { background: rgba(201,162,39,0.18); color: var(--gold-soft); }
   .badge-danger { background: rgba(209,106,106,0.18); color: #f0a3a3; }
-
-  .gauge-wrap { display: flex; flex-direction: column; align-items: center; margin: 4px 0 0; }
-  .gauge-readout {
-    font-family: var(--mono); font-size: 40px; font-weight: 600; color: #fff;
-    letter-spacing: 0.5px; margin-top: -34px;
-  }
-  .gauge-unit { font-size: 13px; color: rgba(255,255,255,0.55); font-family: var(--mono); margin-left: 4px; }
-  .gauge-sub { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 2px; font-family: var(--mono); }
+  .hero-sub { font-size: 10.5px; color: rgba(255,255,255,0.4); margin: 10px 0 0; }
 
   .section-title {
     font-size: 11px; font-weight: 600; margin: 4px 0 8px;
@@ -89,8 +86,8 @@
     display: flex; align-items: center; gap: 6px; font-size: 10px;
     color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.4px; text-transform: uppercase;
   }
-  .metric-value { font-size: 19px; font-weight: 600; margin: 0; font-family: var(--mono); }
-  .metric-unit { font-size: 12px; font-weight: 400; color: var(--text-muted); font-family: var(--mono); }
+  .metric-value { font-size: 19px; font-weight: 600; margin: 0; }
+  .metric-unit { font-size: 12px; font-weight: 400; color: var(--text-muted); }
 
   .actions-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
   .action-btn {
@@ -144,15 +141,21 @@
     </div>
   </div>
 
-  <div class="gauge-card">
-    <div class="gauge-top">
-      <span class="gauge-label">แรงดันไอน้ำ</span>
-      <span class="badge badge-ok" id="pressureBadge">-</span>
+  <div class="hero-card">
+    <div class="ring-wrap">
+      <svg width="118" height="118" viewBox="0 0 118 118">
+        <circle cx="59" cy="59" r="50" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="9"/>
+        <circle id="ringFg" cx="59" cy="59" r="50" fill="none" stroke="#c9a227" stroke-width="9" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159" transform="rotate(-90 59 59)"/>
+      </svg>
+      <div class="ring-center">
+        <span class="ring-value" id="pressureValue">-</span>
+        <span class="ring-unit">bar</span>
+      </div>
     </div>
-    <div class="gauge-wrap">
-      <svg id="gaugeSvg" width="220" height="130" viewBox="0 0 220 130"></svg>
-      <p class="gauge-readout"><span id="pressureValue">-</span><span class="gauge-unit">bar</span></p>
-      <p class="gauge-sub" id="lastUpdate">อัปเดตล่าสุด: -</p>
+    <div class="hero-info">
+      <p class="hero-label">แรงดันไอน้ำ</p>
+      <span class="badge badge-ok" id="pressureBadge">-</span>
+      <p class="hero-sub" id="lastUpdate">อัปเดตล่าสุด: -</p>
     </div>
   </div>
 
@@ -222,6 +225,7 @@ const CONFIG = {
 };
 
 let history = [];
+const RING_CIRCUMFERENCE = 2 * Math.PI * 50;
 
 function fmtNum(v, decimals) {
   const n = Number(v);
@@ -236,63 +240,25 @@ function updateConnStatus(state, text) {
 
 function updatePressureBadge(pressure) {
   const badge = document.getElementById("pressureBadge");
+  const ring = document.getElementById("ringFg");
   const p = Number(pressure);
   if (isNaN(p)) { badge.textContent = "-"; badge.className = "badge"; return; }
   if (p >= CONFIG.PRESSURE_DANGER_ABOVE) {
     badge.textContent = "สูงเกินไป"; badge.className = "badge badge-danger";
+    ring.setAttribute("stroke", "#d16a6a");
   } else if (p >= CONFIG.PRESSURE_WARN_ABOVE) {
     badge.textContent = "ใกล้ค่าสูงสุด"; badge.className = "badge badge-warn";
+    ring.setAttribute("stroke", "#e8d48a");
   } else {
     badge.textContent = "ปกติ"; badge.className = "badge badge-ok";
+    ring.setAttribute("stroke", "#c9a227");
   }
 }
 
-// ====== Gauge (semi-circle instrument dial) ======
-const GAUGE_CX = 110, GAUGE_CY = 108, GAUGE_R = 90, GAUGE_R_IN = 74;
-
-function polarToCartesian(cx, cy, r, angleDeg) {
-  const a = (angleDeg - 180) * Math.PI / 180;
-  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-}
-
-function describeArc(cx, cy, r, startAngle, endAngle) {
-  const start = polarToCartesian(cx, cy, r, endAngle);
-  const end = polarToCartesian(cx, cy, r, startAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-  return "M " + start.x.toFixed(2) + " " + start.y.toFixed(2) +
-    " A " + r + " " + r + " 0 " + largeArcFlag + " 0 " + end.x.toFixed(2) + " " + end.y.toFixed(2);
-}
-
-function valueToAngle(v) {
-  const frac = Math.max(0, Math.min(1, v / CONFIG.GAUGE_MAX));
-  return frac * 180;
-}
-
-function initGauge() {
-  const svg = document.getElementById("gaugeSvg");
-  const warnAngle = valueToAngle(CONFIG.PRESSURE_WARN_ABOVE);
-  const dangerAngle = valueToAngle(CONFIG.PRESSURE_DANGER_ABOVE);
-
-  let ticks = "";
-  for (let i = 0; i <= 10; i++) {
-    const ang = i * 18;
-    const p1 = polarToCartesian(GAUGE_CX, GAUGE_CY, GAUGE_R + 6, ang);
-    const p2 = polarToCartesian(GAUGE_CX, GAUGE_CY, GAUGE_R + (i % 5 === 0 ? 14 : 10), ang);
-    ticks += '<line x1="' + p1.x.toFixed(1) + '" y1="' + p1.y.toFixed(1) + '" x2="' + p2.x.toFixed(1) + '" y2="' + p2.y.toFixed(1) + '" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>';
-  }
-
-  svg.innerHTML =
-    '<path d="' + describeArc(GAUGE_CX, GAUGE_CY, GAUGE_R, 0, warnAngle) + '" fill="none" stroke="rgba(107,191,89,0.35)" stroke-width="10" stroke-linecap="round"/>' +
-    '<path d="' + describeArc(GAUGE_CX, GAUGE_CY, GAUGE_R, warnAngle, dangerAngle) + '" fill="none" stroke="rgba(201,162,39,0.4)" stroke-width="10"/>' +
-    '<path d="' + describeArc(GAUGE_CX, GAUGE_CY, GAUGE_R, dangerAngle, 180) + '" fill="none" stroke="rgba(209,106,106,0.4)" stroke-width="10" stroke-linecap="round"/>' +
-    ticks +
-    '<g id="gaugeNeedle"><line x1="' + GAUGE_CX + '" y1="' + GAUGE_CY + '" x2="' + GAUGE_CX + '" y2="' + (GAUGE_CY - GAUGE_R_IN) + '" stroke="#e8d48a" stroke-width="2.5" stroke-linecap="round"/><circle cx="' + GAUGE_CX + '" cy="' + GAUGE_CY + '" r="5" fill="#e8d48a"/></g>';
-}
-
-function updateGaugeNeedle(pressure) {
-  const angle = valueToAngle(Number(pressure) || 0);
-  const needle = document.getElementById("gaugeNeedle");
-  if (needle) needle.setAttribute("transform", "rotate(" + (angle - 90) + " " + GAUGE_CX + " " + GAUGE_CY + ")");
+function updateRing(pressure) {
+  const frac = Math.max(0, Math.min(1, Number(pressure) / CONFIG.GAUGE_MAX));
+  const offset = RING_CIRCUMFERENCE * (1 - frac);
+  document.getElementById("ringFg").style.strokeDashoffset = offset;
 }
 
 function polylinePoints(values, w, h, pad) {
@@ -338,7 +304,7 @@ async function fetchData() {
     document.getElementById("stackValue").textContent = fmtNum(d.TempExhaustToStack, 0);
 
     updatePressureBadge(d.streamPressure);
-    updateGaugeNeedle(d.streamPressure);
+    updateRing(d.streamPressure);
 
     const ts = d.timestamp ? new Date(String(d.timestamp).replace(" ", "T")) : new Date();
     document.getElementById("lastUpdate").textContent = "อัปเดตล่าสุด " + ts.toLocaleTimeString("th-TH");
@@ -362,7 +328,6 @@ async function fetchData() {
   }
 }
 
-initGauge();
 fetchData();
 setInterval(fetchData, CONFIG.POLL_INTERVAL_MS);
 </script>
