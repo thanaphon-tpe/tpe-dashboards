@@ -59,7 +59,8 @@
   table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: var(--mono); }
   th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 7px 5px; border-bottom: 0.5px solid var(--border); white-space: nowrap; font-family: -apple-system, sans-serif; letter-spacing: 0.3px; text-transform: uppercase; font-size: 9.5px; }
   td { padding: 7px 5px; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
-  .table-wrap { overflow-x: auto; }
+  .table-wrap { overflow-x: auto; overflow-y: auto; max-height: 420px; }
+  table thead th { position: sticky; top: 0; background: var(--surface-2); z-index: 1; }
   .chart-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; position: relative; }
   .chart-scroll svg { display: block; }
   .chart-hint { font-size: 10px; color: var(--text-muted); margin: 6px 0 0; display: none; }
@@ -276,9 +277,10 @@ function renderTable(records) {
     wrap.innerHTML = '<p class="empty-note">ยังไม่มีข้อมูล</p>';
     return;
   }
-  const recent = records.slice(-20).reverse();
-  let html = '<table><thead><tr><th>เวลา</th><th>แรงดัน</th><th>น้ำเข้า</th><th>น้ำออก</th><th>ไอเสียเข้า</th><th>ปล่อง</th></tr></thead><tbody>';
-  recent.forEach(function(r) {
+  const all = records.slice().reverse(); // ใหม่สุดอยู่บน แสดงครบทุกแถว ไม่ตัด
+  let html = '<p style="font-size:11px; color:var(--text-muted); margin:0 0 8px;">ทั้งหมด ' + all.length + ' รายการ — เลื่อนลงเพื่อดูรายการเก่ากว่า</p>';
+  html += '<table><thead><tr><th>เวลา</th><th>แรงดัน</th><th>น้ำเข้า</th><th>น้ำออก</th><th>ไอเสียเข้า</th><th>ปล่อง</th></tr></thead><tbody>';
+  all.forEach(function(r) {
     html += '<tr>' +
       '<td>' + formatTimestampForDisplay(r.timestamp) + '</td>' +
       '<td>' + (r.streamPressure || '-') + '</td>' +
