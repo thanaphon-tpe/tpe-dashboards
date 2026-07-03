@@ -60,6 +60,12 @@
   th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 7px 5px; border-bottom: 0.5px solid var(--border); white-space: nowrap; font-family: -apple-system, sans-serif; letter-spacing: 0.3px; text-transform: uppercase; font-size: 9.5px; }
   td { padding: 7px 5px; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
   .table-wrap { overflow-x: auto; }
+  .chart-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; position: relative; }
+  .chart-scroll svg { display: block; }
+  .chart-hint { font-size: 10px; color: var(--text-muted); margin: 6px 0 0; display: none; }
+  .chart-hint.show { display: block; }
+  .axis-overlay { position: sticky; left: 0; top: 0; width: 0; height: 0; z-index: 2; pointer-events: none; }
+  .axis-overlay span { position: absolute; left: 0; font-size: 10px; font-family: monospace; color: var(--text-muted); background: var(--surface-2); padding: 1px 4px 1px 0; white-space: nowrap; }
 
   .legend { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
   .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-secondary); letter-spacing: 0.2px; }
@@ -93,7 +99,14 @@
       <button class="range-btn" data-mode="agg" data-limit="168">7 วัน</button>
       <button class="range-btn" data-mode="agg" data-limit="720">30 วัน</button>
     </div>
-    <svg id="pressureChart" width="100%" height="160" viewBox="0 0 700 160"></svg>
+    <div class="chart-scroll">
+      <div class="axis-overlay">
+        <span id="pressureMaxLabel" style="top:2px;"></span>
+        <span id="pressureMinLabel" style="top:142px;"></span>
+      </div>
+      <svg id="pressureChart" height="160" viewBox="0 0 700 160"></svg>
+    </div>
+    <p class="chart-hint" id="pressureScrollHint">← เลื่อนดูข้อมูลทั้งหมดได้ →</p>
     <div class="legend" id="pressureLegend" style="display:none;">
       <span class="legend-item"><span class="legend-dot" style="background:#c9a227"></span>ค่าเฉลี่ย</span>
       <span class="legend-item"><span class="legend-dot" style="background:#c9a227;opacity:0.3"></span>ช่วงต่ำสุด–สูงสุด</span>
@@ -102,7 +115,8 @@
 
   <div class="card-white">
     <p class="section-title">แนวโน้มอุณหภูมิ</p>
-    <svg id="tempChart" width="100%" height="160" viewBox="0 0 700 160"></svg>
+    <div class="chart-scroll"><svg id="tempChart" height="160" viewBox="0 0 700 160"></svg></div>
+    <p class="chart-hint" id="tempScrollHint">← เลื่อนดูข้อมูลทั้งหมดได้ →</p>
     <div class="legend">
       <span class="legend-item"><span class="legend-dot" style="background:#16304f"></span>น้ำเข้า ECO</span>
       <span class="legend-item"><span class="legend-dot" style="background:#a32d2d"></span>น้ำออก ECO</span>
@@ -146,7 +160,12 @@ function renderPressureChart(records) {
   const svg = document.getElementById("pressureChart");
   const values = records.map(function(r) { return Number(r.streamPressure) || 0; });
   if (values.length < 2) {
+    svg.setAttribute("width", 700);
+    svg.setAttribute("viewBox", "0 0 700 160");
     svg.innerHTML = '<text x="350" y="80" text-anchor="middle" font-size="12" fill="#918f86">ยังไม่มีข้อมูลย้อนหลังเพียงพอ</text>';
+    document.getElementById("pressureScrollHint").classList.remove("show");
+    document.getElementById("pressureMaxLabel").textContent = "";
+    document.getElementById("pressureMinLabel").textContent = "";
     return;
   }
 
@@ -155,7 +174,13 @@ function renderPressureChart(records) {
   const maxValues = hasMinMax ? records.map(function(r) { return Number(r.streamPressure_max) || 0; }) : null;
 
   const allForScale = hasMinMax ? values.concat(minValues, maxValues) : values;
-  const w = 700, h = 160, padL = 10, padR = 10, padT = 15, padB = 20;
+  const PIXELS_PER_POINT = 5;
+  const w = Math.max(700, values.length * PIXELS_PER_POINT);
+  const h = 160, padL = 10, padR = 10, padT = 15, padB = 20;
+  svg.setAttribute("width", w);
+  svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+  document.getElementById("pressureScrollHint").classList.toggle("show", w > 700);
+
   const min = Math.min.apply(null, allForScale), max = Math.max.apply(null, allForScale);
   const range = (max - min) || 1;
   const step = (w - padL - padR) / (values.length - 1);
@@ -173,12 +198,13 @@ function renderPressureChart(records) {
   const avgPts = values.map(function(v, i) { return toX(i).toFixed(1) + "," + toY(v).toFixed(1); }).join(" ");
 
   svg.innerHTML =
-    '<line x1="0" y1="' + padT + '" x2="700" y2="' + padT + '" stroke="#e5e1d6" stroke-width="0.5"/>' +
-    '<line x1="0" y1="' + (h - padB) + '" x2="700" y2="' + (h - padB) + '" stroke="#e5e1d6" stroke-width="0.5"/>' +
-    '<text x="0" y="12" font-size="10" fill="#918f86" font-family="monospace">' + max.toFixed(1) + ' bar</text>' +
-    '<text x="0" y="155" font-size="10" fill="#918f86" font-family="monospace">' + min.toFixed(1) + ' bar</text>' +
+    '<line x1="0" y1="' + padT + '" x2="' + w + '" y2="' + padT + '" stroke="#e5e1d6" stroke-width="0.5"/>' +
+    '<line x1="0" y1="' + (h - padB) + '" x2="' + w + '" y2="' + (h - padB) + '" stroke="#e5e1d6" stroke-width="0.5"/>' +
     bandPath +
     '<polyline points="' + avgPts + '" fill="none" stroke="#c9a227" stroke-width="2"/>';
+
+  document.getElementById("pressureMaxLabel").textContent = max.toFixed(1) + " bar";
+  document.getElementById("pressureMinLabel").textContent = min.toFixed(1) + " bar";
 
   if (hasMinMax) {
     const legend = document.getElementById("pressureLegend");
@@ -195,14 +221,24 @@ function renderTempChart(records) {
     stack: records.map(function(r) { return Number(r.TempExhaustToStack) || 0; })
   };
   if (series.waterIn.length < 2) {
+    svg.setAttribute("width", 700);
+    svg.setAttribute("viewBox", "0 0 700 160");
     svg.innerHTML = '<text x="350" y="80" text-anchor="middle" font-size="12" fill="#918f86">ยังไม่มีข้อมูลย้อนหลังเพียงพอ</text>';
+    document.getElementById("tempScrollHint").classList.remove("show");
     return;
   }
+
+  const PIXELS_PER_POINT = 5;
+  const w = Math.max(700, series.waterIn.length * PIXELS_PER_POINT);
+  svg.setAttribute("width", w);
+  svg.setAttribute("viewBox", "0 0 " + w + " 160");
+  document.getElementById("tempScrollHint").classList.toggle("show", w > 700);
+
   const all = [].concat(series.waterIn, series.waterOut, series.exhaustIn, series.stack);
   const min = Math.min.apply(null, all), max = Math.max.apply(null, all);
 
   function scaledPoints(values) {
-    const step = 680 / (values.length - 1);
+    const step = (w - 20) / (values.length - 1);
     return values.map(function(v, i) {
       const x = 10 + i * step;
       const range = (max - min) || 1;
@@ -212,8 +248,8 @@ function renderTempChart(records) {
   }
 
   svg.innerHTML =
-    '<line x1="0" y1="15" x2="700" y2="15" stroke="#e5e1d6" stroke-width="0.5"/>' +
-    '<line x1="0" y1="140" x2="700" y2="140" stroke="#e5e1d6" stroke-width="0.5"/>' +
+    '<line x1="0" y1="15" x2="' + w + '" y2="15" stroke="#e5e1d6" stroke-width="0.5"/>' +
+    '<line x1="0" y1="140" x2="' + w + '" y2="140" stroke="#e5e1d6" stroke-width="0.5"/>' +
     '<polyline points="' + scaledPoints(series.waterIn) + '" fill="none" stroke="#16304f" stroke-width="1.5"/>' +
     '<polyline points="' + scaledPoints(series.waterOut) + '" fill="none" stroke="#a32d2d" stroke-width="1.5"/>' +
     '<polyline points="' + scaledPoints(series.exhaustIn) + '" fill="none" stroke="#c9a227" stroke-width="1.5"/>' +
