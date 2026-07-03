@@ -127,7 +127,7 @@
 
 <script>
 const CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbw-E6LWi3pSTZsRC8Eea0GtQA9yiYqi1E2Bq8ppXOzB53bzSiSZBxHuOgKqvKrm4cJa/exec"
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwIg7zn9siwqZQ1-j-50YUtYZh0ZsWLBO4s318H2UH3hI0qnuNfMpY1fmYsSpnsvea1/exec"
 };
 
 function polyline(values, w, h, padL, padR, padT, padB) {
@@ -220,6 +220,20 @@ function renderTempChart(records) {
     '<polyline points="' + scaledPoints(series.stack) + '" fill="none" stroke="#3b6d11" stroke-width="1.5"/>';
 }
 
+function formatTimestampForDisplay(raw) {
+  if (!raw) return "-";
+  // รองรับทั้งแบบ UTC ("...T...Z") และแบบเวลาไทยที่ format มาแล้ว ("yyyy-MM-dd HH:mm:ss")
+  const hasZ = /Z$/.test(raw);
+  const d = new Date(hasZ ? raw : String(raw).replace(" ", "T"));
+  if (isNaN(d.getTime())) return raw; // parse ไม่ได้ ก็โชว์ค่าดิบไปก่อน
+  // ถ้า raw มี Z (เป็น UTC จริง) ต้องแปลงเป็นเวลาไทยด้วย toLocaleString
+  // ถ้า raw ไม่มี Z (เป็นเวลาไทยที่ format มาแล้ว) ใช้ค่าตรงๆ ได้เลยไม่ต้องแปลงซ้ำ
+  if (hasZ) {
+    return d.toLocaleString("th-TH", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).replace(",", "");
+  }
+  return raw;
+}
+
 function renderTable(records) {
   const wrap = document.getElementById("tableWrap");
   if (records.length === 0) {
@@ -230,7 +244,7 @@ function renderTable(records) {
   let html = '<table><thead><tr><th>เวลา</th><th>แรงดัน</th><th>น้ำเข้า</th><th>น้ำออก</th><th>ไอเสียเข้า</th><th>ปล่อง</th></tr></thead><tbody>';
   recent.forEach(function(r) {
     html += '<tr>' +
-      '<td>' + (r.timestamp || '-') + '</td>' +
+      '<td>' + formatTimestampForDisplay(r.timestamp) + '</td>' +
       '<td>' + (r.streamPressure || '-') + '</td>' +
       '<td>' + (r.TempWaterInletEco || '-') + '</td>' +
       '<td>' + (r.TempWaterOutletEco || '-') + '</td>' +
